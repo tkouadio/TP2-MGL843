@@ -1,4 +1,3 @@
-```markdown
 # TP2 – Évaluer la qualité d’un projet TypeScript  
 **MGL843 – Sujets avancés en conception logicielle**
 
