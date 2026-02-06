@@ -1,0 +1,103 @@
+export interface NoteProps {
+  id: number;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Entité Note (domaine).
+ * - Contient des règles simples (ex: normalisation des tags).
+ * - La persistance est gérée ailleurs (Repository).
+ */
+export class Note implements NoteProps {
+  id: number;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+
+  constructor(props: NoteProps) {
+    this.id = props.id;
+    this.title = props.title;
+    this.content = props.content;
+    this.tags = Note.normalizeTags(props.tags);
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
+  }
+
+  static createNew(id: number, title: string, content: string, tags: string[]): Note {
+    const now = new Date().toISOString();
+    return new Note({
+      id,
+      title: title.trim(),
+      content: content.trim(),
+      tags: Note.normalizeTags(tags),
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  update(fields: { title?: string; content?: string }): void {
+    if (typeof fields.title === 'string') this.title = fields.title.trim();
+    if (typeof fields.content === 'string') this.content = fields.content.trim();
+    this.touch();
+  }
+
+  addTag(tag: string): void {
+    const t = tag.trim();
+    if (!t) return;
+    const normalized = Note.normalizeTags([t])[0];
+    if (!this.tags.includes(normalized)) {
+      this.tags.push(normalized);
+      this.tags = Note.normalizeTags(this.tags);
+      this.touch();
+    }
+  }
+
+  removeTag(tag: string): void {
+    const t = tag.trim();
+    if (!t) return;
+    const normalized = Note.normalizeTags([t])[0];
+    const before = this.tags.length;
+    this.tags = this.tags.filter(x => x !== normalized);
+    if (this.tags.length !== before) this.touch();
+  }
+
+  matches(keyword: string): boolean {
+    const k = keyword.trim();
+    if (!k) return false;
+    return (
+      this.title.includes(k) ||
+      this.content.includes(k) ||
+      this.tags.some(tag => tag.includes(k))
+    );
+  }
+
+  toJSON(): NoteProps {
+    return {
+      id: this.id,
+      title: this.title,
+      content: this.content,
+      tags: [...this.tags],
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
+  private touch(): void {
+    this.updatedAt = new Date().toISOString();
+  }
+
+  static normalizeTags(tags: string[]): string[] {
+    // Simple normalisation: trim + lower-case + unique + tri.
+    const cleaned = tags
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(t => t.toLowerCase());
+    return Array.from(new Set(cleaned)).sort((a, b) => a.localeCompare(b));
+  }
+}

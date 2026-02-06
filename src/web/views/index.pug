@@ -1,0 +1,25 @@
+extends layout
+
+block content
+  form(method="get", action="/notes", style="margin: 12px 0")
+    .row
+      input(type="text", name="q", value=q, placeholder="Rechercher (titre, contenu ou tag)...")
+      button.btn(type="submit") Rechercher
+
+  if notes.length === 0
+    p Aucune note trouvée.
+  else
+    each note in notes
+      .note
+        h3(style="margin:0") #{note.title} 
+          span.muted  (##{note.id})
+        p #{note.content}
+        if note.tags && note.tags.length
+          .tags
+            each t in note.tags
+              span.tag #{t}
+        .muted Créée: #{note.createdAt} • Modifiée: #{note.updatedAt}
+        div(style="margin-top:10px; display:flex; gap:8px")
+          a.btn.primary(href=`/notes/${note.id}/edit`) Modifier / Tags
+          form.inline(method="post", action=`/notes/${note.id}/delete`)
+            button.btn.danger(type="submit") Supprimer

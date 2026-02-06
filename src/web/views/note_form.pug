@@ -1,0 +1,18 @@
+extends layout
+
+block content
+  h3 Nouvelle note
+  form(method="post", action="/notes")
+    label Titre
+    input(type="text", name="title", required=true, placeholder="Titre")
+    br
+    br
+    label Contenu
+    textarea(name="content", required=true, placeholder="Contenu...")
+    br
+    br
+    label Tags (séparés par des virgules)
+    input(type="text", name="tags", placeholder="ex: cours, ets, important")
+    br
+    br
+    button.btn.primary(type="submit") Créer

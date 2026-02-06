@@ -1,0 +1,33 @@
+doctype html
+html
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1")
+    title Notes (TP2)
+    style.
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+      header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; }
+      a, button { cursor: pointer; }
+      .container { max-width: 900px; margin: 0 auto; }
+      .note { border: 1px solid #ddd; padding: 12px; border-radius: 10px; margin: 10px 0; }
+      .tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+      .tag { background:#f1f5f9; padding:2px 8px; border-radius: 999px; font-size: 12px; }
+      form.inline { display:inline; }
+      input, textarea { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+      textarea { min-height: 130px; }
+      .row { display:flex; gap:12px; }
+      .row > * { flex:1; }
+      .btn { padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background: #fff; }
+      .btn.primary { border-color:#0ea5e9; }
+      .btn.danger { border-color:#ef4444; }
+      .muted { color:#64748b; font-size: 12px; }
+  body
+    .container
+      header
+        div
+          h2(style="margin:0") Notes – Frontend Pug (TP2)
+          div.muted Ajout/édition/suppression + gestion des tags
+        nav
+          a.btn(href="/notes") Liste
+          a.btn.primary(href="/notes/new") Nouvelle note
+      block content

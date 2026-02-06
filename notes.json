@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "title": "Test 1",
+    "content": "Contenu du test 1",
+    "tags": [
+      "tag1"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Test Thierry",
+    "content": "Ceci est un test d'ajout de note.",
+    "tags": [
+      "mgl843,ets",
+      "note de test",
+      "tp2"
+    ],
+    "createdAt": "2026-02-06T17:41:46.874Z",
+    "updatedAt": "2026-02-06T18:10:13.041Z"
+  }
+]

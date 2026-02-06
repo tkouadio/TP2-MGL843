@@ -1,0 +1,36 @@
+extends layout
+
+block content
+  h3 Modifier la note ##{note.id}
+  form(method="post", action=`/notes/${note.id}`)
+    label Titre
+    input(type="text", name="title", required=true, value=note.title)
+    br
+    br
+    label Contenu
+    textarea(name="content", required=true)= note.content
+    br
+    br
+    button.btn.primary(type="submit") Enregistrer
+
+  hr
+  h3 Tags
+  if note.tags && note.tags.length
+    .tags
+      each t in note.tags
+        span.tag #{t}
+        form.inline(method="post", action=`/notes/${note.id}/tags/remove`)
+          input(type="hidden", name="tag", value=t)
+          button.btn(type="submit") Retirer
+  else
+    p Aucun tag.
+
+  form(method="post", action=`/notes/${note.id}/tags/add`, style="margin-top:12px")
+    label Ajouter un tag
+    .row
+      input(type="text", name="tag", placeholder="ex: important", required=true)
+      button.btn.primary(type="submit") Ajouter
+
+  hr
+  form(method="post", action=`/notes/${note.id}/delete`)
+    button.btn.danger(type="submit") Supprimer la note
