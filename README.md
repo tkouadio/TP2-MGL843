@@ -129,25 +129,8 @@ ts2famix -i tsconfig.json -o TP2-MGL843-model.json
 
 ---
 
-## 📄 Rapport
-
-Le rapport du TP2 :
-
-* est rédigé en **Markdown**,
-* exporté en **PDF**,
-* inclut :
-
-  * les réponses aux questions,
-  * les captures d’écran Moose,
-  * les visualisations,
-  * le lien vers ce dépôt GitHub.
-
----
-
 ## ✍️ Auteur
 
 TP réalisé dans le cadre du cours MGL843 – Sujets avancés en conception logicielle ÉTS – Hiver 2026
 
 ---
-
-```
