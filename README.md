@@ -6,10 +6,10 @@ Ce projet est une évolution du **TP1** dans le cadre du cours **MGL843**.
 L’objectif du **TP2** est d’augmenter la complexité du projet afin d’évaluer la **qualité de la conception logicielle**, en introduisant de nouvelles exigences (FURPS), une architecture plus orientée objets et une interface Web.
 
 Le projet consiste en une **application de gestion de notes** permettant :
-- la création, la modification et la suppression de notes,
-- la gestion de tags associés aux notes,
-- la recherche par titre, contenu ou tag,
-- l’interaction via une interface Web développée avec **Pug**.
+- La création, la modification et la suppression de notes,
+- La gestion de tags associés aux notes,
+- La recherche par titre, contenu ou tag,
+- L’interaction via une interface Web développée avec **Pug**.
 
 ---
 
@@ -29,19 +29,29 @@ Le projet est structuré en plusieurs responsabilités distinctes :
 
 src/
 ├── domain/
-│   └── Note.ts                # Entité métier (note + tags)
+│   └── Note.ts                       # Entité métier (note + tags + règles)
 ├── persistence/
-│   └── FileNotesRepository.ts # Accès aux données (fichier JSON)
+│   └── NotesRepository.ts            # FileNotesRepository (persistance JSON)
 ├── services/
-│   └── NotesService.ts        # Logique métier
+│   └── NotesService.ts               # Logique métier (CRUD, tags, recherche)
 ├── web/
-│   ├── controllers/
-│   ├── views/                 # Templates Pug
-│   ├── routes.ts
-│   └── app.ts                 # Application Express
-├── index.ts                   # Point d’entrée / façade
+│   ├── app.ts                        # Application Express
+│   ├── routes.ts                     # Routes HTTP (/notes)
+│   └── views/                        # Templates Pug
+│       ├── layout.pug
+│       ├── index.pug
+│       ├── note_form.pug
+│       └── note_edit.pug
+├── index.ts                          # Façade / compatibilité (NoteManager)
+├── notes.ts                          # Code legacy / utilitaire (TP1)
 tests/
-└── *.test.ts                  # Tests automatisés
+├── notes.test.ts                     # Tests unitaires (logique métier)
+└── web.e2e.test.ts                   # Tests E2E (frontend + routes HTTP)
+scripts/
+└── copy-views.js                     # Script de build (copie des vues Pug)
+.github/
+└── workflows/
+    └── ci.yml                        # CI: Tests exécutés à chaque push/PR
 
 ````
 
