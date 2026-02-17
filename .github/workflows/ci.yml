@@ -31,10 +31,10 @@ jobs:
       # Étape 2 : Téléchargement de l'image MOOSE déjà prête (Stable & Rapide)
       - name: Installer Moose 11
         run: |
-          wget -O- https://get.moosetechnology.org/11 | bash
-          # On renomme l'image pour que le reste du script fonctionne
-          mv Moose64-*.image Pharo.image
-          mv Moose64-*.changes Pharo.changes
+          wget https://github.com/moosetechnology/Moose/releases/download/11.0.0/Moose64-11.0.0.image
+          wget https://github.com/moosetechnology/Moose/releases/download/11.0.0/Moose64-11.0.0.changes
+          mv Moose64-11.0.0.image Pharo.image
+          mv Moose64-11.0.0.changes Pharo.changes
 
       # Étape 3 : Script Smalltalk d'exportation
       - name: Créer le script d'export CSV
