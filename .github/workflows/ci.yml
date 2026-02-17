@@ -78,7 +78,8 @@ jobs:
   analysis:
     runs-on: ubuntu-latest
     container:
-      image: moosetechnology/moose:v11
+      # L'image officielle de Moose 11 sur GitHub Container Registry
+      image: ghcr.io/moosetechnology/moose:v11
 
     steps:
       - name: Checkout repository
@@ -100,11 +101,18 @@ jobs:
       - name: Generate FAMIX Model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      - name: Run Pharo analysis
+      - name: Install NeoCSV & Run Pharo analysis
         run: |
-          ./pharo --headless Moose.image st export_metrics.st
+          # Dans cette image, l'exécutable est 'pharo' et l'image est 'Moose.image'
+          # On installe NeoCSV car il n'est pas toujours inclus
+          ./pharo Moose.image eval --save "Metacello new baseline: 'NeoCSV'; repository: 'github://svenvc/NeoCSV'; load."
+
+          # On lance ton script d'export
+          # Attention: vérifie si ton script s'appelle export_metrics.st ou export_metrics_csv.st
+          ./pharo --headless Moose.image st scripts/export_metrics_csv.st --quit
 
       - name: Upload metrics
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: metrics-csv
