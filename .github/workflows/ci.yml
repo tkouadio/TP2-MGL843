@@ -71,10 +71,15 @@ name: CI Analysis & Tests
 on:
   pull_request:
     branches: ["**"]
+  push:
+    branches: [main, master, dev]
 
 jobs:
   analysis:
     runs-on: ubuntu-latest
+    # On utilise l'image Moose officielle : tout est déjà installé dedans !
+    container:
+      image: moosetechnology/moose:v11
 
     steps:
       - name: Checkout repository
@@ -84,9 +89,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
 
-      - name: Install dependencies
+      - name: Install ts2famix
         run: |
           npm ci
           npm install -g ts2famix
@@ -97,26 +101,13 @@ jobs:
       - name: Generate FAMIX model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      - name: Install Pharo & Moose
+      - name: Install NeoCSV and Run Metrics
         run: |
-          # Installation des librairies 32/64 bits nécessaires pour Pharo sur Ubuntu
-          sudo apt-get update && sudo apt-get install -y libsqlite3-0 libx11-6 libgl1-mesa-glx
+          # Dans ce conteneur, l'exécutable s'appelle 'pharo' et l'image 'Moose.image'
+          ./pharo Moose.image eval --save "Metacello new baseline: 'NeoCSV'; repository: 'github://svenvc/NeoCSV'; load."
 
-          # On télécharge l'image Moose directement (Plus rapide que Metacello)
-          curl -L https://get.pharo.org/64/moose11 | bash
-
-          # On installe NeoCSV sur l'image Moose téléchargée
-          ./pharo Moose11.image eval --save "
-            Metacello new
-              baseline: 'NeoCSV';
-              repository: 'github://svenvc/NeoCSV';
-              load.
-          "
-          wget -nc https://files.pharo.org/sources/PharoV110.sources
-
-      - name: Run Moose metrics
-        # Correction : On utilise l'image Moose11.image téléchargée plus haut
-        run: ./pharo --headless Moose11.image st scripts/export_metrics_csv.st --quit
+          # On lance ton script d'export
+          ./pharo --headless Moose.image st scripts/export_metrics_csv.st --quit
 
       - name: Upload CSV metrics
         if: success()
