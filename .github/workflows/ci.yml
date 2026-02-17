@@ -32,25 +32,28 @@ jobs:
       - name: Generate FAMIX model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # --- PHARO + MOOSE ---
-      - name: Install Pharo 11 + Famix only (FAST CI)
-        env:
-          METACELLO_DISABLE_ICEBERG: "true"
+      # --- PHARO + MOOSE + NEOCSV ---
+      - name: Install Pharo 11 + Moose Model + NeoCSV
         run: |
           curl -L https://get.pharo.org/64/110+vm | bash
 
           ./pharo Pharo.image eval --save "
-            Metacello new
-              baseline: 'Famix';
-              repository: 'github://moosetechnology/Famix/src';
-              load.
+            [ 
+              Metacello new
+                baseline: 'Moose';
+                repository: 'github://moosetechnology/Moose:development/src';
+                load: 'Model'.
+              Metacello new
+                baseline: 'NeoCSV';
+                repository: 'github://svenvc/NeoCSV/repository';
+                load.
+            ] on: Error do: [ :ex | Stdio stdout nextPutAll: ex description; lf. ex resume ].
           "
-
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       # --- EXPORT METRICS ---
       - name: Run Moose metrics
-        run: ./pharo --headless Pharo.image st export_metrics.st
+        run: ./pharo --headless Pharo.image st scripts/export_metrics_csv.st --quit
 
       # --- ARCHIVE ---
       - name: Upload CSV metrics
