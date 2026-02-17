@@ -53,29 +53,25 @@ jobs:
 
       #     # 3. Récupérer les sources
       #     wget -nc https://files.pharo.org/sources/PharoV110.sources
+
       - name: Installer Moose 11 et VM
         if: matrix.node-version == 18
         run: |
-          # 1. Téléchargement stable
+          # 1. Télécharger Pharo 11 Stable
           curl -L https://get.pharo.org/64/110+vm | bash
 
-          # 2. Chargement de Moose avec gestion sécurisée des classes
+          # 2. Charger Moose 11 (Version allégée pour l'analyse)
           ./pharo Pharo.image eval --save "
             [ 
-              \"1. Forcer HTTPS de manière robuste pour Pharo 11\"
-              self class environment 
-                at: #IceCredentialsProvider 
-                ifPresent: [ :cls | cls useCustomSSH: false ].
-
-              \"2. Charger Moose Core\"
               Metacello new 
                 baseline: 'Moose'; 
                 repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
-                load: 'Core' 
+                load: 'Model' 
             ] on: Error do: [ :ex | 
                 Stdio stdout nextPutAll: 'LOG: ' , ex description; lf.
                 ex resume ]"
 
+          # 3. Récupérer les sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       - name: Créer le script d'export CSV
