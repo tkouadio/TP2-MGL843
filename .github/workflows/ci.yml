@@ -42,12 +42,12 @@ jobs:
           ./pharo Pharo.image eval --save "
             Metacello new
               baseline: 'Famix';
-              repository: 'github://moosetechnology/Famix:v11.x.x/src';
+              repository: 'github://moosetechnology/Famix/src';
               load.
 
             Metacello new
               baseline: 'Moose';
-              repository: 'github://moosetechnology/Moose:v11.x.x/src';
+              repository: 'github://moosetechnology/Moose/src';
               load: #(Core Model).
           "
 
