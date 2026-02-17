@@ -34,7 +34,6 @@ jobs:
         run: npm test
 
       # --- PHASE 2 : GÉNÉRATION DU MODÈLE ET ANALYSE MOOSE ---
-      # L'analyse Moose n'est exécutée qu'une seule fois (Node 18) pour optimiser les ressources.
       - name: Générer le modèle Famix
         if: matrix.node-version == 18
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
@@ -42,16 +41,17 @@ jobs:
       - name: Installer Moose 11 et VM
         if: matrix.node-version == 18
         run: |
-          # Téléchargement via le script officiel (plus résilient que wget direct)
-          curl https://get.pharo.org/64/moose-11 | bash
+          # 1. Télécharger la VM Pharo 11 et l'image Pharo 11 stable (Source fiable)
+          curl https://get.pharo.org/64/110+vm | bash
 
-          # Standardisation du nom des fichiers si nécessaire
-          if [ -f Moose64*.image ]; then
-            mv Moose64*.image Pharo.image
-            mv Moose64*.changes Pharo.changes
-          fi
+          # 2. Charger Moose 11 dans l'image (Méthode infaillible par Metacello)
+          ./pharo Pharo.image eval --save "
+            [ Metacello new 
+                baseline: 'Moose'; 
+                repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
+                load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
 
-          # Téléchargement du fichier sources nécessaire à Pharo 11
+          # 3. Récupérer les sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       - name: Créer le script d'export CSV
