@@ -38,20 +38,40 @@ jobs:
         if: matrix.node-version == 18
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
+      # - name: Installer Moose 11 et VM
+      #   if: matrix.node-version == 18
+      #   run: |
+      #     # 1. Télécharger la VM Pharo 11 et l'image Pharo 11 stable (Source fiable)
+      #     curl https://get.pharo.org/64/110+vm | bash
+
+      #     # 2. Charger Moose 11 dans l'image (Méthode infaillible par Metacello)
+      #     ./pharo Pharo.image eval --save "
+      #       [ Metacello new
+      #           baseline: 'Moose';
+      #           repository: 'github://moosetechnology/Moose:v11.x.x/src';
+      #           load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
+
+      #     # 3. Récupérer les sources
+      #     wget -nc https://files.pharo.org/sources/PharoV110.sources
       - name: Installer Moose 11 et VM
         if: matrix.node-version == 18
         run: |
-          # 1. Télécharger la VM Pharo 11 et l'image Pharo 11 stable (Source fiable)
-          curl https://get.pharo.org/64/110+vm | bash
+          # 1. Télécharger Pharo 11 Stable
+          curl -L https://get.pharo.org/64/110+vm | bash
 
-          # 2. Charger Moose 11 dans l'image (Méthode infaillible par Metacello)
+          # 2. Configurer HTTPS et charger Moose CORE uniquement (Rapide et Robuste)
           ./pharo Pharo.image eval --save "
-            [ Metacello new 
+            [ 
+              \"Forcer HTTPS pour éviter les erreurs SSH\"
+              #Iceberg remoteTypeSelector: #https.
+              
+              Metacello new 
                 baseline: 'Moose'; 
                 repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
-                load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
+                load: 'Core' 
+            ] on: MCConflict do: [ :ex | ex resume ]"
 
-          # 3. Récupérer les sources
+          # 3. Sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       - name: Créer le script d'export CSV
