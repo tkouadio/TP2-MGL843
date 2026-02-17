@@ -27,5 +27,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Installer ts2famix globalement
+      - name: Installer ts2famix
+        run: npm install -g ts2famix
+
+      # Installer Pharo, Moose et NeoCSVWriter
+      - name: Installer Pharo, Moose et NeoCSVWriter
+        run: |
+          wget -O- get.pharo.org/64/ | bash
+          ./pharo Pharo.image eval "Metacello new baseline: 'Moose'; repository: 'github://moosetechnology/Moose:development/src'; load."
+          ./pharo Pharo.image eval "Metacello new baseline: 'NeoCSV'; repository: 'github://svenvc/NeoCSV:master/repository'; load."
+        shell: bash
+
+      # Rendre le script exécutable
+      - name: Rendre le script gen_famix_model.sh exécutable
+        run: chmod +x ./scripts/gen_famix_model.sh
+
       - name: Run tests
         run: npm test
+
+      # Générer le modèle Famix
+      - name: Générer le modèle Famix
+        run: bash ./scripts/gen_famix_model.sh
+
+      # Exécuter le script Pharo pour calculer les métriques (affichage)
+      - name: Calculer les métriques (Pharo)
+        run: |
+          ./pharo --headless Pharo.image st ./scripts/calc_metrics.st --save --quit
+
+      # Exécuter le script Pharo pour exporter les métriques en CSV
+      - name: Exporter les métriques en CSV (Pharo)
+        run: |
+          ./pharo --headless Pharo.image st ./scripts/export_metrics_csv.st --save --quit
