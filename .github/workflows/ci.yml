@@ -32,12 +32,18 @@ jobs:
       - name: Installer ts2famix
         run: npm install -g ts2famix
 
+      # Exporter le token GitHub pour Metacello (si besoin de repo privé)
+      - name: Exporter le token GitHub
+        run: echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+        shell: bash
+
       # Installer Pharo, Moose et NeoCSVWriter
       - name: Installer Pharo, Moose et NeoCSVWriter
         run: |
           wget -O- get.pharo.org/64/ | bash
-          ./pharo Pharo.image eval "Metacello new baseline: 'Moose'; repository: 'github://moosetechnology/Moose:development/src'; load."
-          ./pharo Pharo.image eval "Metacello new baseline: 'NeoCSV'; repository: 'github://svenvc/NeoCSV:master/repository'; load."
+          # Utiliser des URLs HTTPS pour Metacello
+          ./pharo Pharo.image eval "Metacello new baseline: 'Moose'; repository: 'https://github.com/moosetechnology/Moose.git:development/src'; load."
+          ./pharo Pharo.image eval "Metacello new baseline: 'NeoCSV'; repository: 'https://github.com/svenvc/NeoCSV.git:master/repository'; load."
         shell: bash
 
       # Rendre le script exécutable
