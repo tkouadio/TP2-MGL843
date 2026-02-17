@@ -33,7 +33,7 @@ jobs:
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
       # --- PHARO + MOOSE ---
-      - name: Install Pharo 11 + Moose Core (CI safe)
+      - name: Install Pharo 11 + Famix only (FAST CI)
         env:
           METACELLO_DISABLE_ICEBERG: "true"
         run: |
@@ -44,11 +44,6 @@ jobs:
               baseline: 'Famix';
               repository: 'github://moosetechnology/Famix/src';
               load.
-
-            Metacello new
-              baseline: 'Moose';
-              repository: 'github://moosetechnology/Moose/src';
-              load: #(Core Model).
           "
 
           wget -nc https://files.pharo.org/sources/PharoV110.sources
