@@ -77,17 +77,18 @@ on:
 jobs:
   analysis:
     runs-on: ubuntu-latest
-    container:
-      image: moosetechnology/moose
 
     steps:
+      # --- CHECKOUT ---
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # --- NODE / TESTS ---
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
 
       - name: Install dependencies
         run: |
@@ -97,15 +98,23 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Generate FAMIX Model
+      # --- MODEL GENERATION ---
+      - name: Generate FAMIX model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      - name: Run Pharo analysis
+      # --- PHARO + MOOSE ---
+      - name: Install Pharo 11, Moose & NeoCSV
         run: |
-          ./pharo --headless Moose.image st export_metrics.st
+          # Installer Pharo 11 + VM
+          curl -L https://get.pharo.org/64/110+vm | bash
 
-      - name: Upload metrics
-        uses: actions/upload-artifact@v4
-        with:
-          name: metrics-csv
-          path: metrics_tp2.csv
+          # Charger Moose 11 et NeoCSV sans interaction
+          ./pharo Pharo.image eval --save "
+            [
+              Deprecation raiseWarning: false.
+              Metacello new
+                baseline: 'Moose';
+                repository: 'github://moosetechnology/Moose:v11.x.x/src';
+                load.
+              Metacello new
+                baseline: 'NeoCSV
