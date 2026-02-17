@@ -10,10 +10,6 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18] # Inutile de tester sur 20 pour l'analyse métrique seule
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 18
           cache: "npm"
 
       - name: Install dependencies
@@ -29,13 +25,10 @@ jobs:
           npm ci
           npm install -g ts2famix
 
-      # 1. Génération du modèle (JSON)
       - name: Générer le modèle Famix
-        run: |
-          # Assurez-vous que tsconfig.json existe
-          ts2famix -i tsconfig.json -o TP2-mgl843-model.json
+        run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # 2. Installation de Pharo et chargement de Moose 11 (Méthode Stable)
+      # Étape 2 : Installation plus légère de Moose pour éviter les erreurs de syntaxe
       - name: Installer Pharo et Moose 11
         run: |
           curl https://get.pharo.org/64/110+vm | bash
@@ -43,59 +36,46 @@ jobs:
             [ Metacello new 
                 baseline: 'Moose'; 
                 repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
-                load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
+                load: 'Core' ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
 
-      # 3. Création du script Pharo pour les métriques (si le fichier n'est pas dans le repo)
+      # Étape 3 : Script Smalltalk robuste (sans dépendances externes)
       - name: Créer le script d'export CSV
         run: |
           cat << 'EOF' > export_metrics.st
-          | model classes fileStream writer |
+          | model classes fileStream |
 
-          "Chargement des paquets nécessaires (NeoCSV est souvent inclus dans Moose, mais on sécurise)"
-          Metacello new 
-            baseline: 'NeoCSV'; 
-            repository: 'github://svenvc/NeoCSV/repository'; 
-            load.
-
-          "Import du modèle Famix généré plus haut"
+          "Importation sécurisée"
           model := MooseModel root importModel: 'TP2-mgl843-model.json' asFileReference.
-
-          "Sélection des classes"
           classes := model allModelClasses.
 
-          "Écriture du CSV"
           fileStream := 'metrics_tp2.csv' asFileReference writeStream.
           [
-            writer := NeoCSVWriter on: fileStream.
-            writer separator: $,. 
-            writer nextPut: #('ClassName' 'LOC' 'NOM' 'FanIn' 'FanOut' 'WMC').
+            "Écriture manuelle du CSV pour éviter NeoCSV et ses bugs de chargement"
+            fileStream nextPutAll: 'ClassName,LOC,NOM,FanIn,FanOut,WMC'; nextPut: Character cr.
             
             classes do: [ :each |
-              | fIn fOut wmc |
+              | fIn fOut wmc loc |
               fIn := (each queryAllIncoming collect: #source) asSet size.
               fOut := (each queryAllOutgoing collect: #target) asSet size.
               wmc := each methods inject: 0 into: [ :sum :m | sum + (m numberOfParameters + 1) ].
-              
-              writer nextPut: { 
-                each name. 
-                (each numberOfLinesOfCode ifNil: [0]). 
-                each methods size. 
-                fIn. 
-                fOut. 
-                wmc 
-              }
+              loc := each numberOfLinesOfCode ifNil: [ 0 ].
+
+              fileStream 
+                nextPutAll: each name asString; nextPut: $,;
+                nextPutAll: loc asString; nextPut: $,;
+                nextPutAll: each methods size asString; nextPut: $,;
+                nextPutAll: fIn asString; nextPut: $,;
+                nextPutAll: fOut asString; nextPut: $,;
+                nextPutAll: wmc asString; nextPut: Character cr.
             ].
           ] ensure: [ fileStream close ].
 
           Smalltalk snapshot: false quit: true.
           EOF
 
-      # 4. Exécution de l'analyse
       - name: Exécuter l'analyse Pharo
-        run: |
-          ./pharo --headless Pharo.image st export_metrics.st
+        run: ./pharo --headless Pharo.image st export_metrics.st
 
-      # 5. Sauvegarde du résultat (Important !)
       - name: Upload Metrics CSV
         uses: actions/upload-artifact@v4
         with:
