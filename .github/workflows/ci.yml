@@ -33,29 +33,28 @@ jobs:
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
       # --- PHARO + MOOSE + NEOCSV ---
-      - name: Install Pharo, Moose & NeoCSV
+      - name: Install Moose 11 Image
         run: |
-          curl -L https://get.pharo.org/64/110+vm | bash
-          ./pharo Pharo.image eval --save "
+          # Télécharger l'image Moose 11 directement
+          curl -L https://get.pharo.org/64/moose11 | bash
+
+          # Installer NeoCSV sur cette image
+          ./pharo Moose11.image eval --save "
             [ 
-              Metacello new
-                baseline: 'Moose';
-                repository: 'github://moosetechnology/Moose/src';
-                load. \"Chargement par défaut (plus robuste)\"
-                
               Metacello new
                 baseline: 'NeoCSV';
                 repository: 'github://svenvc/NeoCSV';
                 load.
-            ] on: Error do: [ :ex | 
-                Stdio stdout nextPutAll: 'LOG: ' , ex description; lf. 
-                ex resume ].
+            ] on: Error do: [ :ex | ex resume ].
           "
+          # S'assurer d'avoir les sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       # --- EXPORT METRICS ---
       - name: Run Moose metrics
-        run: ./pharo --headless Pharo.image st scripts/export_metrics_csv.st --quit
+        run: |
+          # Notez qu'on utilise Moose11.image ici
+          ./pharo --headless Moose11.image st scripts/export_metrics_csv.st --quit
 
       # --- ARCHIVE ---
       - name: Upload CSV metrics
