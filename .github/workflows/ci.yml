@@ -1,4 +1,4 @@
-name: CI Analysis
+name: CI Analysis & Tests
 
 on:
   push:
@@ -7,17 +7,22 @@ on:
     branches: ["**"]
 
 jobs:
-  analyze:
+  test-and-analyze:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
     steps:
+      # --- PHASE 1 : INITIALISATION ET TESTS ---
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node-version }}
           cache: "npm"
 
       - name: Install dependencies
@@ -25,28 +30,32 @@ jobs:
           npm ci
           npm install -g ts2famix
 
+      - name: Run tests
+        run: npm test
+
+      # --- PHASE 2 : GÉNÉRATION DU MODÈLE ET ANALYSE MOOSE ---
+      # L'analyse Moose n'est exécutée qu'une seule fois (Node 18) pour optimiser les ressources.
       - name: Générer le modèle Famix
+        if: matrix.node-version == 18
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # Étape 2 : Installation de la VM Pharo + Image Moose (Release officielle)
       - name: Installer Moose 11 et VM
+        if: matrix.node-version == 18
         run: |
-          # 1. Télécharger la VM Pharo 11 (indispensable pour exécuter l'image)
-          curl https://get.pharo.org/64/110+vm | bash
+          # Téléchargement via le script officiel (plus résilient que wget direct)
+          curl https://get.pharo.org/64/moose-11 | bash
 
-          # 2. Télécharger l'image Moose 11 (URL exacte des releases v11.0.1)
-          wget https://github.com/moosetechnology/Moose/releases/download/v11.0.1/Moose64-v11.0.1.image
-          wget https://github.com/moosetechnology/Moose/releases/download/v11.0.1/Moose64-v11.0.1.changes
+          # Standardisation du nom des fichiers si nécessaire
+          if [ -f Moose64*.image ]; then
+            mv Moose64*.image Pharo.image
+            mv Moose64*.changes Pharo.changes
+          fi
 
-          # 3. Télécharger le fichier sources Pharo 11
-          wget https://files.pharo.org/sources/PharoV110.sources
+          # Téléchargement du fichier sources nécessaire à Pharo 11
+          wget -nc https://files.pharo.org/sources/PharoV110.sources
 
-          # 4. Standardiser les noms
-          mv Moose64-v11.0.1.image Pharo.image
-          mv Moose64-v11.0.1.changes Pharo.changes
-
-      # Étape 3 : Script Smalltalk d'exportation
       - name: Créer le script d'export CSV
+        if: matrix.node-version == 18
         run: |
           cat << 'EOF' > export_metrics.st
           | model classes fileStream |
@@ -81,9 +90,12 @@ jobs:
           EOF
 
       - name: Exécuter l'analyse Pharo
+        if: matrix.node-version == 18
         run: ./pharo --headless Pharo.image st export_metrics.st
 
+      # --- PHASE 3 : ARCHIVAGE ---
       - name: Upload Metrics CSV
+        if: matrix.node-version == 18
         uses: actions/upload-artifact@v4
         with:
           name: metrics-csv
