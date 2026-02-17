@@ -32,24 +32,27 @@ jobs:
       - name: Generate FAMIX model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # --- PHARO + MOOSE + NEOCSV ---
-      - name: Install Moose 11 Image
+      # --- PHARO + MOOSE (FIXED) ---
+      - name: Install Pharo, Moose & NeoCSV
         run: |
-          # Télécharger l'image Moose 11 directement
-          curl -L https://get.pharo.org/64/moose11 | bash
+          # Télécharger Pharo 11 standard
+          curl -L https://get.pharo.org/64/110+vm | bash
 
-          # Installer NeoCSV sur cette image
-          ./pharo Moose11.image eval --save "
+          # Charger Moose et NeoCSV en supprimant les dialogues d'avertissement
+          ./pharo Pharo.image eval --save "
             [ 
+              Deprecation raiseWarning: false.
+              Metacello new
+                baseline: 'Moose';
+                repository: 'github://moosetechnology/Moose:v11.x.x/src';
+                load.
               Metacello new
                 baseline: 'NeoCSV';
                 repository: 'github://svenvc/NeoCSV';
                 load.
-            ] on: Error do: [ :ex | ex resume ].
+            ] on: Warning do: [ :w | w resume ].
           "
-          # S'assurer d'avoir les sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
-
       # --- EXPORT METRICS ---
       - name: Run Moose metrics
         run: |
