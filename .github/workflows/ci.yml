@@ -28,29 +28,27 @@ jobs:
       - name: Générer le modèle Famix
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # Étape 2 : Installation plus légère de Moose pour éviter les erreurs de syntaxe
-      - name: Installer Pharo et Moose 11
+      # Étape 2 : Téléchargement de l'image MOOSE déjà prête (Stable & Rapide)
+      - name: Installer Moose 11
         run: |
-          curl https://get.pharo.org/64/110+vm | bash
-          ./pharo Pharo.image eval --save "
-            [ Metacello new 
-                baseline: 'Moose'; 
-                repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
-                load: 'Core' ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
+          wget -O- https://get.moosetechnology.org/11 | bash
+          # On renomme l'image pour que le reste du script fonctionne
+          mv Moose64-*.image Pharo.image
+          mv Moose64-*.changes Pharo.changes
 
-      # Étape 3 : Script Smalltalk robuste (sans dépendances externes)
+      # Étape 3 : Script Smalltalk d'exportation
       - name: Créer le script d'export CSV
         run: |
           cat << 'EOF' > export_metrics.st
           | model classes fileStream |
 
-          "Importation sécurisée"
+          "Importation du modèle JSON"
           model := MooseModel root importModel: 'TP2-mgl843-model.json' asFileReference.
           classes := model allModelClasses.
 
           fileStream := 'metrics_tp2.csv' asFileReference writeStream.
           [
-            "Écriture manuelle du CSV pour éviter NeoCSV et ses bugs de chargement"
+            "En-tête CSV"
             fileStream nextPutAll: 'ClassName,LOC,NOM,FanIn,FanOut,WMC'; nextPut: Character cr.
             
             classes do: [ :each |
