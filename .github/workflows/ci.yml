@@ -1,29 +1,24 @@
 name: CI Analysis & Tests
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
     branches: ["**"]
 
 jobs:
-  test-and-analyze:
+  analysis:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18, 20]
-
     steps:
-      # --- PHASE 1 : INITIALISATION ET TESTS ---
-      - name: Checkout code
+      # --- CHECKOUT ---
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      # --- NODE / TESTS ---
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          node-version: 18
+          cache: npm
 
       - name: Install dependencies
         run: |
@@ -33,89 +28,27 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # --- PHASE 2 : GÉNÉRATION DU MODÈLE ET ANALYSE MOOSE ---
-      - name: Générer le modèle Famix
-        if: matrix.node-version == 18
+      # --- MODEL GENERATION ---
+      - name: Generate FAMIX model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # - name: Installer Moose 11 et VM
-      #   if: matrix.node-version == 18
-      #   run: |
-      #     # 1. Télécharger la VM Pharo 11 et l'image Pharo 11 stable (Source fiable)
-      #     curl https://get.pharo.org/64/110+vm | bash
-
-      #     # 2. Charger Moose 11 dans l'image (Méthode infaillible par Metacello)
-      #     ./pharo Pharo.image eval --save "
-      #       [ Metacello new
-      #           baseline: 'Moose';
-      #           repository: 'github://moosetechnology/Moose:v11.x.x/src';
-      #           load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
-
-      #     # 3. Récupérer les sources
-      #     wget -nc https://files.pharo.org/sources/PharoV110.sources
-
-      - name: Installer Moose 11 et VM
-        if: matrix.node-version == 18
+      # --- PHARO + MOOSE ---
+      - name: Install Pharo 11 & Moose
         run: |
-          # 1. Télécharger Pharo 11 Stable
           curl -L https://get.pharo.org/64/110+vm | bash
-
-          # 2. Charger Moose 11 (Version allégée pour l'analyse)
           ./pharo Pharo.image eval --save "
-            [ 
-              Metacello new 
-                baseline: 'Moose'; 
-                repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
-                load: 'Model' 
-            ] on: Error do: [ :ex | 
-                Stdio stdout nextPutAll: 'LOG: ' , ex description; lf.
-                ex resume ]"
-
-          # 3. Récupérer les sources
+            Metacello new
+              baseline: 'Moose';
+              repository: 'github://moosetechnology/Moose:v11.x.x/src';
+              load: 'Model'."
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
-      - name: Créer le script d'export CSV
-        if: matrix.node-version == 18
-        run: |
-          cat << 'EOF' > export_metrics.st
-          | model classes fileStream |
-
-          "Importation du modèle JSON"
-          model := MooseModel root importModel: 'TP2-mgl843-model.json' asFileReference.
-          classes := model allModelClasses.
-
-          fileStream := 'metrics_tp2.csv' asFileReference writeStream.
-          [
-            "En-tête CSV"
-            fileStream nextPutAll: 'ClassName,LOC,NOM,FanIn,FanOut,WMC'; nextPut: Character cr.
-            
-            classes do: [ :each |
-              | fIn fOut wmc loc |
-              fIn := (each queryAllIncoming collect: #source) asSet size.
-              fOut := (each queryAllOutgoing collect: #target) asSet size.
-              wmc := each methods inject: 0 into: [ :sum :m | sum + (m numberOfParameters + 1) ].
-              loc := each numberOfLinesOfCode ifNil: [ 0 ].
-
-              fileStream 
-                nextPutAll: each name asString; nextPut: $,;
-                nextPutAll: loc asString; nextPut: $,;
-                nextPutAll: each methods size asString; nextPut: $,;
-                nextPutAll: fIn asString; nextPut: $,;
-                nextPutAll: fOut asString; nextPut: $,;
-                nextPutAll: wmc asString; nextPut: Character cr.
-            ].
-          ] ensure: [ fileStream close ].
-
-          Smalltalk snapshot: false quit: true.
-          EOF
-
-      - name: Exécuter l'analyse Pharo
-        if: matrix.node-version == 18
+      # --- EXPORT METRICS ---
+      - name: Run Moose metrics
         run: ./pharo --headless Pharo.image st export_metrics.st
 
-      # --- PHASE 3 : ARCHIVAGE ---
-      - name: Upload Metrics CSV
-        if: matrix.node-version == 18
+      # --- ARCHIVE ---
+      - name: Upload CSV metrics
         uses: actions/upload-artifact@v4
         with:
           name: metrics-csv
