@@ -77,6 +77,8 @@ on:
 jobs:
   analysis:
     runs-on: ubuntu-latest
+    container:
+      image: moosetechnology/moose:v11
 
     steps:
       - name: Checkout repository
@@ -86,38 +88,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
 
-      - name: Install JS dependencies
+      - name: Install dependencies
         run: |
           npm ci
           npm install -g ts2famix
 
-      - name: Generate FAMIX model
+      - name: Run tests
+        run: npm test
+
+      - name: Generate FAMIX Model
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      - name: Install Moose 11 & NeoCSV
+      - name: Run Pharo analysis
         run: |
-          # 1. Télécharger le lanceur Pharo
-          curl -L https://get.pharo.org/64/110+vm | bash
+          ./pharo --headless Moose.image st export_metrics.st
 
-          # 2. Télécharger l'image Moose 11 pré-construite (Lien direct officiel)
-          curl -L https://get.pharo.org/64/moose11 | bash
-
-          # 3. Installer NeoCSV sur Moose11.image
-          ./pharo Moose11.image eval --save "
-            Metacello new
-              baseline: 'NeoCSV';
-              repository: 'github://svenvc/NeoCSV';
-              load.
-          "
-
-      - name: Run Moose metrics
-        # On utilise Moose11.image qui contient déjà Moose et Famix
-        run: ./pharo --headless Moose11.image st scripts/export_metrics_csv.st --quit
-
-      - name: Upload CSV metrics
-        if: success()
+      - name: Upload metrics
         uses: actions/upload-artifact@v4
         with:
           name: metrics-csv
