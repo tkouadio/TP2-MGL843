@@ -39,7 +39,96 @@ jobs:
       # Étape 3 : Script Smalltalk d'exportation
       - name: Créer le script d'export CSV
         run: |
+          cat << 'EOF' > export_metrics.stname: CI Analysis
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g ts2famix
+
+      - name: Générer le modèle Famix
+        run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
+
+      # Étape 2 : Installation de la VM Pharo + Image Moose (Release officielle)
+      - name: Installer Moose 11 et VM
+        run: |
+          # 1. Télécharger la VM Pharo 11 (indispensable pour exécuter l'image)
+          curl https://get.pharo.org/64/110+vm | bash
+          
+          # 2. Télécharger l'image Moose 11 (URL exacte des releases v11.0.1)
+          wget https://github.com/moosetechnology/Moose/releases/download/v11.0.1/Moose64-v11.0.1.image
+          wget https://github.com/moosetechnology/Moose/releases/download/v11.0.1/Moose64-v11.0.1.changes
+          
+          # 3. Télécharger le fichier sources Pharo 11
+          wget https://files.pharo.org/sources/PharoV110.sources
+          
+          # 4. Standardiser les noms
+          mv Moose64-v11.0.1.image Pharo.image
+          mv Moose64-v11.0.1.changes Pharo.changes
+
+      # Étape 3 : Script Smalltalk d'exportation
+      - name: Créer le script d'export CSV
+        run: |
           cat << 'EOF' > export_metrics.st
+          | model classes fileStream |
+
+          "Importation du modèle JSON"
+          model := MooseModel root importModel: 'TP2-mgl843-model.json' asFileReference.
+          classes := model allModelClasses.
+
+          fileStream := 'metrics_tp2.csv' asFileReference writeStream.
+          [
+            "En-tête CSV"
+            fileStream nextPutAll: 'ClassName,LOC,NOM,FanIn,FanOut,WMC'; nextPut: Character cr.
+            
+            classes do: [ :each |
+              | fIn fOut wmc loc |
+              fIn := (each queryAllIncoming collect: #source) asSet size.
+              fOut := (each queryAllOutgoing collect: #target) asSet size.
+              wmc := each methods inject: 0 into: [ :sum :m | sum + (m numberOfParameters + 1) ].
+              loc := each numberOfLinesOfCode ifNil: [ 0 ].
+
+              fileStream 
+                nextPutAll: each name asString; nextPut: $,;
+                nextPutAll: loc asString; nextPut: $,;
+                nextPutAll: each methods size asString; nextPut: $,;
+                nextPutAll: fIn asString; nextPut: $,;
+                nextPutAll: fOut asString; nextPut: $,;
+                nextPutAll: wmc asString; nextPut: Character cr.
+            ].
+          ] ensure: [ fileStream close ].
+
+          Smalltalk snapshot: false quit: true.
+          EOF
+
+      - name: Exécuter l'analyse Pharo
+        run: ./pharo --headless Pharo.image st export_metrics.st
+
+      - name: Upload Metrics CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-csv
+          path: metrics_tp2.csv
           | model classes fileStream |
 
           "Importation du modèle JSON"
