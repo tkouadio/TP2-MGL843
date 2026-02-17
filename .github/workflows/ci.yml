@@ -35,12 +35,15 @@ jobs:
           # Assurez-vous que tsconfig.json existe
           ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # 2. Installation de Moose 11 (URL Officielle)
-      - name: Installer Moose 11
+      # 2. Installation de Pharo et chargement de Moose 11 (Méthode Stable)
+      - name: Installer Pharo et Moose 11
         run: |
-          wget -O- https://get.moosetechnology.org/11 | bash
-          mv Moose64-*.image Pharo.image
-          mv Moose64-*.changes Pharo.changes
+          curl https://get.pharo.org/64/110+vm | bash
+          ./pharo Pharo.image eval --save "
+            [ Metacello new 
+                baseline: 'Moose'; 
+                repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
+                load ] on: MCMergeOrUpdateConflict do: [ :ex | ex resume ]"
 
       # 3. Création du script Pharo pour les métriques (si le fichier n'est pas dans le repo)
       - name: Créer le script d'export CSV
