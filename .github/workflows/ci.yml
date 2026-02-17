@@ -59,19 +59,22 @@ jobs:
           # 1. Télécharger Pharo 11 Stable
           curl -L https://get.pharo.org/64/110+vm | bash
 
-          # 2. Configurer HTTPS et charger Moose CORE uniquement (Rapide et Robuste)
+          # 2. Charger Moose Core avec la correction de syntaxe
           ./pharo Pharo.image eval --save "
             [ 
-              \"Forcer HTTPS pour éviter les erreurs SSH\"
-              #Iceberg remoteTypeSelector: #https.
-              
+              \"Forcer l'utilisation de HTTPS au lieu de SSH pour GitHub\"
+              (self class environment at: #IceCredentialsProvider) ifPresent: [ :provider |
+                 provider useCustomSSH: false ].
+
               Metacello new 
                 baseline: 'Moose'; 
                 repository: 'github://moosetechnology/Moose:v11.x.x/src'; 
                 load: 'Core' 
-            ] on: MCConflict do: [ :ex | ex resume ]"
+            ] on: Error do: [ :ex | 
+                FileStream stdout nextPutAll: 'Erreur lors du chargement: ', ex description; cr.
+                ex resume ]"
 
-          # 3. Sources
+          # 3. Récupérer les sources
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       - name: Créer le script d'export CSV
