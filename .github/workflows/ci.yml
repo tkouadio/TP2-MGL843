@@ -34,6 +34,8 @@ jobs:
 
       # --- PHARO + MOOSE ---
       - name: Install Pharo 11 + Moose Core (CI safe)
+        env:
+          METACELLO_DISABLE_ICEBERG: "true"
         run: |
           curl -L https://get.pharo.org/64/110+vm | bash
 
