@@ -35,13 +35,10 @@ jobs:
           # Assurez-vous que tsconfig.json existe
           ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
-      # 2. Installation Rapide de Pharo + Moose (Pré-built)
-      - name: Installer Moose 10 (Pharo)
+      # 2. Installation de Moose 11 (URL Officielle)
+      - name: Installer Moose 11
         run: |
-          # Télécharge directement l'image Moose (beaucoup plus rapide que d'installer via Metacello)
-          wget -O- https://get.pharo.org/64/moose10 | bash
-
-          # Renomme l'image pour simplifier les commandes suivantes
+          wget -O- https://get.moosetechnology.org/11 | bash
           mv Moose64-*.image Pharo.image
           mv Moose64-*.changes Pharo.changes
 
