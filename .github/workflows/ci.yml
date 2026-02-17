@@ -33,20 +33,22 @@ jobs:
         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
 
       # --- PHARO + MOOSE ---
-      - name: Install Pharo 11 & Moose
+      - name: Install Pharo 11 + Moose Core (CI safe)
         run: |
           curl -L https://get.pharo.org/64/110+vm | bash
+
           ./pharo Pharo.image eval --save "
-            [ Metacello new
-                baseline: 'Moose';
-                repository: 'github://moosetechnology/Moose:v11.x.x/src';
-                load ]
-            on: Error
-            do: [ :ex |
-              Stdio stdout
-                nextPutAll: ex description;
-                lf.
-              ex signal ]."
+            Metacello new
+              baseline: 'Famix';
+              repository: 'github://moosetechnology/Famix:v11.x.x/src';
+              load.
+
+            Metacello new
+              baseline: 'Moose';
+              repository: 'github://moosetechnology/Moose:v11.x.x/src';
+              load: #(Core Model).
+          "
+
           wget -nc https://files.pharo.org/sources/PharoV110.sources
 
       # --- EXPORT METRICS ---
