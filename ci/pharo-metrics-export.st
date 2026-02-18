@@ -46,25 +46,20 @@ classes := model allModelClasses.
 Transcript show: 'Classes found: ', classes size printString; cr.
 
 "Ouverture du fichier CSV en écriture avec NeoCSV (inclus dans Pharo)."
-"Séparateur : point-virgule (;) pour compatibilité avec Excel FR."
+"Séparateur : virgule (,) pour compatibilité avec le format demandé."
 stream := './export_metrics.csv' asFileReference writeStream.
 writer := NeoCSVWriter on: stream.
-writer separator: $;.
+writer separator: $,.
 
 "En-tête du CSV"
-writer nextPut: #( 'Nom_Classe' 'Nb_Methodes' 'Nb_Attributs' 'Lignes_de_Code' ).
+writer nextPut: #( 'ClassName' 'LOC' 'NOM' 'FanIn' 'FanOut' 'WMC' ).
 
-"Pour chaque classe, on calcule le nombre de lignes de code (LOC)."
-"La stratégie de calcul du LOC :"
-"  - Priorité : lire le fichier source via le sourceAnchor de la classe"
-"    (positions startPos à endPos) et compter les lignes."
-"  - Fallback : si le fichier source n'est pas trouvé, sommer les LOC"
-"    de toutes les méthodes de la classe."
+"Pour chaque classe, on calcule les métriques demandées."
 classes do: [ :each |
-    | loc anchor srcFile content snippet |
+    | loc anchor srcFile content snippet fanIn fanOut wmc |
     loc := 0.
 
-    "Tentative de calcul via le sourceAnchor (méthode principale)"
+    "LOC : priorité au calcul via le sourceAnchor, sinon somme des LOC des méthodes."
     anchor := each sourceAnchor.
     (anchor notNil and: [ anchor isKindOf: FamixTypeScriptIndexedFileAnchor ]) ifTrue: [
         srcFile := anchor fileName asFileReference.
@@ -74,18 +69,27 @@ classes do: [ :each |
             loc := snippet lineCount.
         ].
     ].
-
-    "Fallback : somme des LOC des méthodes"
     loc = 0 ifTrue: [
         loc := each methods inject: 0 into: [ :sum :m | sum + (m numberOfLinesOfCode ifNil: [ 0 ]) ].
     ].
 
+    "FanIn : nombre d'éléments qui pointent vers la classe."
+    fanIn := (each queryAllIncoming collect: #source) asSet size.
+
+    "FanOut : nombre d'éléments pointés par la classe."
+    fanOut := (each queryAllOutgoing collect: #target) asSet size.
+
+    "WMC : Weighted Methods per Class (somme des paramètres + 1 pour chaque méthode)."
+    wmc := each methods inject: 0 into: [ :sum :m | sum + ((m numberOfParameters ifNil: [0]) + 1) ].
+
     Transcript show: '  ', each name, ' loc:', loc printString; cr.
     writer nextPut: {
         each name.
-        each numberOfMethods.
-        each numberOfAttributes.
         loc.
+        each methods size.
+        fanIn.
+        fanOut.
+        wmc
     }.
 ].
 
