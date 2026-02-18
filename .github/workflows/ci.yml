@@ -1,133 +1,106 @@
-# name: CI Analysis & Tests
-
-# on:
-#   pull_request:
-#     branches: ["**"]
-
-# jobs:
-#   analysis:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       # --- CHECKOUT ---
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-
-#       # --- NODE / TESTS ---
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: 18
-#           cache: npm
-
-#       - name: Install dependencies
-#         run: |
-#           npm ci
-#           npm install -g ts2famix
-
-#       - name: Run tests
-#         run: npm test
-
-#       # --- MODEL GENERATION ---
-#       - name: Generate FAMIX model
-#         run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
-
-#       # --- PHARO + MOOSE (FIXED) ---
-#       - name: Install Pharo, Moose & NeoCSV
-#         run: |
-#           # Télécharger Pharo 11 standard
-#           curl -L https://get.pharo.org/64/110+vm | bash
-
-#           # Charger Moose et NeoCSV en supprimant les dialogues d'avertissement
-#           ./pharo Pharo.image eval --save "
-#             [
-#               Deprecation raiseWarning: false.
-#               Metacello new
-#                 baseline: 'Moose';
-#                 repository: 'github://moosetechnology/Moose:v11.x.x/src';
-#                 load.
-#               Metacello new
-#                 baseline: 'NeoCSV';
-#                 repository: 'github://svenvc/NeoCSV';
-#                 load.
-#             ] on: Warning do: [ :w | w resume ].
-#           "
-#           wget -nc https://files.pharo.org/sources/PharoV110.sources
-#       # --- EXPORT METRICS ---
-#       - name: Run Moose metrics
-#         run: |
-#           # Notez qu'on utilise Moose11.image ici
-#           ./pharo --headless Moose11.image st scripts/export_metrics_csv.st --quit
-
-#       # --- ARCHIVE ---
-#       - name: Upload CSV metrics
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: metrics-csv
-#           path: metrics_tp2.csv
-
-name: CI Analysis & Tests
+name: CI - Analyse Pharo/Moose
 
 on:
+  push:
+    branches: [main, dev]
   pull_request:
-    branches: ["**"]
+    branches: [main, dev]
 
 jobs:
-  analysis:
+  analyse:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
 
     steps:
-      # --- CHECKOUT ---
-      - name: Checkout repository
+      - name: Checkout du dépôt
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
-      # --- NODE / TESTS ---
-      - name: Setup Node.js
+      - name: Installer Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: "20"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm install -g ts2famix
+      - name: Installer les dépendances npm
+        run: npm ci
 
-      - name: Run tests
+      - name: Exécuter les tests Jest
         run: npm test
 
-      # --- MODEL GENERATION ---
-      - name: Generate FAMIX model
-        run: ts2famix -i tsconfig.json -o TP2-mgl843-model.json
+      - name: Installer ts2famix
+        run: npm install -g ts2famix
 
-      # --- PHARO + MOOSE ---
-      - name: Install Pharo, Moose & NeoCSV
+      - name: Générer le modèle Famix (JSON)
         run: |
-          curl -L https://get.pharo.org/64/110+vm | bash
-          ./pharo Pharo.image eval --save "
-            [
-              Deprecation raiseWarning: false.
-              Metacello new
-                baseline: 'Moose';
-                repository: 'github://moosetechnology/Moose:v11.x.x/src';
-                load.
-              Metacello new
-                baseline: 'NeoCSV';
-                repository: 'github://svenvc/NeoCSV';
-                load.
-            ] on: Warning do: [ :w | w resume ].
-          "
-          mv Pharo.image Moose11.image
-          wget -nc https://files.pharo.org/sources/PharoV110.sources
+          ts2famix -i tsconfig.json -o model.json
+          echo "Modèle généré : $(wc -c < model.json) octets"
+          python3 -c "import json; json.load(open('model.json')); print('JSON valide')"
 
-      # --- EXPORT METRICS ---
-      - name: Run Moose metrics
-        run: |
-          ./pharo --headless Moose11.image st scripts/export_metrics_csv.st --quit
-
-      # --- ARCHIVE ---
-      - name: Upload CSV metrics
-        uses: actions/upload-artifact@v4
+      - name: Installer smalltalkCI (image Moose)
+        uses: hpi-swa/setup-smalltalkCI@v1
+        id: smalltalkci
         with:
-          name: metrics-csv
-          path: metrics_tp2.csv
+          smalltalk-image: Moose64-12
+
+      - name: Charger FamixTypeScript et exporter les métriques CSV
+        run: |
+          smalltalkci -s ${{ steps.smalltalkci.outputs.smalltalk-image }} ci/moose-config.ston
+        shell: bash
+        timeout-minutes: 20
+
+      - name: Vérifier le CSV exporté
+        run: |
+          if [ -f export_metrics.csv ]; then
+            echo "Export CSV réussi !"
+            echo "--- Contenu ---"
+            cat export_metrics.csv
+            echo ""
+            echo "Nombre de lignes : $(wc -l < export_metrics.csv)"
+          else
+            echo "ERREUR : export_metrics.csv non trouvé !"
+            find . -name "*.csv" -type f 2>/dev/null
+            exit 1
+          fi
+
+      - name: Sauvegarder les résultats (artifacts)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultats-analyse
+          path: |
+            model.json
+            export_metrics.csv
+          retention-days: 30
+
+      - name: Pousser les résultats sur la branche ci-results
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/ci-output
+          cp model.json /tmp/ci-output/
+          cp export_metrics.csv /tmp/ci-output/
+          git fetch origin ci-results || true
+          if git rev-parse --verify origin/ci-results >/dev/null 2>&1; then
+            git checkout ci-results
+          else
+            git checkout --orphan ci-results
+            git rm -rf . 2>/dev/null || true
+          fi
+          rm -rf generated
+          mkdir -p generated
+          cp /tmp/ci-output/model.json generated/
+          cp /tmp/ci-output/export_metrics.csv generated/
+          git add generated/
+          if git diff --cached --quiet; then
+            echo "Pas de changement à commiter"
+          else
+            COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+            git commit -m "ci: mise à jour des résultats depuis ${COMMIT_SHA} [skip ci]"
+            git push origin ci-results
+          fi
