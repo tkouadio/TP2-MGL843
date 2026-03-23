@@ -138,6 +138,6 @@ ts2famix -i tsconfig.json -o TP2-MGL843-model.json
 
 ## ✍️ Auteurs
 
-Équipe 3 : Konan Thierry Kouadio, Ghita Aimarah, Hossein Kargar
+Équipe 3 : Konan Thierry Kouadio, Ghita Aimarah, Hossein Kargar.
 
 Contexte : Cours MGL843 – ÉTS – Hiver 2026
