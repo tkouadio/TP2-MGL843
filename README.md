@@ -1,32 +1,29 @@
-# TP2 – Évaluer la qualité d’un projet TypeScript  
-**MGL843 – Sujets avancés en conception logicielle**
+# TP2 – Évaluer la qualité d’un projet TypeScript
+
+> **MGL843 – Sujets avancés en conception logicielle**
+>
+> ![CI Status](https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=github-actions) ![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue?logo=typescript) ![Moose](https://img.shields.io/badge/Analysis-Moose-orange)
+
+---
 
 ## 📌 Description
-Ce projet est une évolution du **TP1** dans le cadre du cours **MGL843**.  
-L’objectif du **TP2** est d’augmenter la complexité du projet afin d’évaluer la **qualité de la conception logicielle**, en introduisant de nouvelles exigences (FURPS), une architecture plus orientée objets et une interface Web.
 
-Le projet consiste en une **application de gestion de notes** permettant :
-- La création, la modification et la suppression de notes,
-- La gestion de tags associés aux notes,
-- La recherche par titre, contenu ou tag,
-- L’interaction via une interface Web développée avec **Pug**.
+Ce projet est une évolution du **TP1** dans le cadre du cours **MGL843**. L’objectif est d'accroître la complexité du système pour évaluer la **qualité de la conception logicielle** en introduisant une architecture orientée objets, de nouvelles exigences (FURPS) et une interface Web dynamique.
 
----
+L’application est un **gestionnaire de notes** complet permettant :
 
-## 🎯 Objectifs du TP2
-- Ajouter de nouvelles exigences fonctionnelles et non fonctionnelles (FURPS)
-- Refactoriser le projet vers une architecture orientée objets
-- Générer un modèle **FamixTypeScript** pour l’analyse avec Moose
-- Évaluer la qualité de la conception à l’aide de métriques
-- Visualiser et analyser ces métriques
+- **CRUD complet** : Création, modification et suppression de notes
+- **Organisation** : Gestion de tags dynamiques
+- **Recherche** : Filtrage par titre, contenu ou tag
+- **Interface Web** : Interaction intuitive développée avec le moteur de template **Pug**
 
 ---
 
-## 🧩 Architecture du projet
-Le projet est structuré en plusieurs responsabilités distinctes :
+## 🧩 Architecture & Design
 
-```
+Le projet suit une séparation stricte des responsabilités pour améliorer la **maintenabilité** et la **testabilité** :
 
+```text
 src/
 ├── domain/
 │   └── Note.ts                       # Entité métier (note + tags + règles)
@@ -52,69 +49,69 @@ scripts/
 .github/
 └── workflows/
     └── ci.yml                        # CI: Tests exécutés à chaque push/PR
-
-````
-
-Cette séparation améliore la **maintenabilité**, la **testabilité** et la **supportabilité** du système.
+```
 
 ---
 
-## 🚀 Fonctionnalités
-- Interface Web avec **Express + Pug**
-- Ajout, modification et suppression de notes via le frontend
-- Ajout et suppression de tags sur une note
-- Recherche par titre, contenu ou tag
-- Persistance des données dans un fichier JSON
-- Tests automatisés (Jest)
+## ⚙️ CI/CD & Analyse de Qualité
+
+Le projet intègre un pipeline de CI (Intégration Continue) avancé via GitHub Actions qui automatise l'analyse de qualité à chaque push.
+
+### Pipeline d'analyse Moose/Pharo
+
+1. **Validation** : Exécution des tests Jest
+2. **Modélisation** : Utilisation de `ts2famix` pour générer un modèle `model.json`
+3. **Analyse Statistique** : Un script Smalltalk charge le modèle dans Moose et calcule :
+   - **LOC** : Lignes de code par classe
+   - **NOM** : Nombre de méthodes
+   - **WMC** : Complexité cyclomatique pondérée (somme des paramètres + 1)
+   - **Couplage** : FanIn (dépendances entrantes) et FanOut (dépendances sortantes)
+4. **Reporting** : Export automatique vers `export_metrics.csv`
+
+Exemple de CSV généré :
+
+```
+ClassName,LOC,NOM,FanIn,FanOut,WMC
+MaClasse,85,12,3,2,15
+AutreClasse,30,5,1,1,6
+```
+
+Les fichiers `model.json` et `export_metrics.csv` sont archivés comme artifacts téléchargeables dans l’onglet Actions de GitHub.
 
 ---
 
-## 🛠️ Technologies utilisées
-- **TypeScript**
-- **Node.js**
-- **Express**
-- **Pug**
-- **Jest**
-- **Moose / FamixTypeScript**
-- **ts2famix**
+## 🛠️ Stack Technique
+
+- **Backend** : Node.js, Express, TypeScript
+- **Frontend** : Pug (Templates HTML), CSS
+- **Tests** : Jest, Supertest
+- **Analyse de code** : Moose, Pharo, FamixTypeScript, ts2famix
 
 ---
 
-## ▶️ Installation et exécution
+## ▶️ Installation et Utilisation
 
-### Prérequis
-- Node.js (v18 ou plus recommandé)
+### 1. Prérequis
+
+- Node.js (v18+)
 - npm
 
-### Installation
+### 2. Installation
+
 ```bash
 npm install
-````
+```
 
-### Lancer l’application Web
+### 3. Lancer l'application
 
 ```bash
+# Mode développement (rechargement automatique)
 npm run dev:web
 ```
 
-Puis ouvrir :
+Accès : [http://localhost:3000/notes](http://localhost:3000/notes)
 
-```
-http://localhost:3000/notes
-```
-
-### Build (optionnel)
-
-```bash
-npm run build
-npm run start:web
-```
-
----
-
-## 🧪 Tests
-
-Lancer les tests automatisés :
+### 4. Exécuter les tests
 
 ```bash
 npm test
@@ -122,25 +119,25 @@ npm test
 
 ---
 
-## 📊 Analyse de la qualité
+## 📊 Génération manuelle des métriques
 
-* Le modèle Famix est généré à partir du code TypeScript du TP2 :
+Si vous souhaitez générer le modèle Famix localement pour l'importer dans Moose :
+
+1. **Générer le JSON** :
 
 ```bash
 ts2famix -i tsconfig.json -o TP2-MGL843-model.json
 ```
 
-* Le modèle est importé dans **Moose** afin d’analyser :
-
-  * la complexité du système,
-  * la répartition des responsabilités,
-  * les relations entre classes,
-  * les métriques de conception.
+2. **Importer dans Moose** :
+   - Ouvrez Moose
+   - Importez le fichier `TP2-MGL843-model.json` via le panneau d'importation Famix
+   - Utilisez les scripts du dossier `scripts/` ou `ci/` pour extraire les métriques
 
 ---
 
-## ✍️ Auteur
+## ✍️ Auteurs
 
-TP réalisé dans le cadre du cours MGL843 – Sujets avancés en conception logicielle ÉTS – Hiver 2026
+Équipe 3 : Konan Thierry Kouadio, Ghita Aimarah, Hossein Kargar.
 
----
+Contexte : Cours MGL843 – ÉTS – Hiver 2026

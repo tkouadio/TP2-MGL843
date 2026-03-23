@@ -18,5 +18,15 @@
     ],
     "createdAt": "2026-02-06T17:41:46.874Z",
     "updatedAt": "2026-02-06T18:10:13.041Z"
+  },
+  {
+    "id": 4,
+    "title": "Test Hossein",
+    "content": "Contenu du note",
+    "tags": [
+      "tp2"
+    ],
+    "createdAt": "2026-02-09T15:19:44.692Z",
+    "updatedAt": "2026-02-09T15:19:44.692Z"
   }
 ]
